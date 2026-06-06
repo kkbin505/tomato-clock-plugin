@@ -1,114 +1,204 @@
-import {
-	Editor,
-	MarkdownView,
-	MarkdownFileInfo,
-	Modal,
-	Notice,
-	Plugin,
-} from 'obsidian';
-import {
-	DEFAULT_SETTINGS,
-	MyPluginSettings,
-	SampleSettingTab,
-} from './settings';
+import { Notice, Plugin, TFile, normalizePath } from 'obsidian';
+import { TomatoTimer, PhaseType, TimerState } from './timer';
+import { TomatoTimerView, VIEW_TYPE_Tomato } from './timerView';
+import { DEFAULT_SETTINGS, TomatoPluginSettings, TomatoSettingTab } from './settings';
+import { appendEntry, nowTimeString, todayString } from './log';
 
-// Remember to rename these classes and interfaces!
+export default class TomatoPlugin extends Plugin {
+    settings!: TomatoPluginSettings;
+    timer!: TomatoTimer;
 
-export default class MyPlugin extends Plugin {
-	settings!: MyPluginSettings;
+    private statusBarEl!: HTMLElement;
 
-	async onload() {
-		await this.loadSettings();
+    async onload(): Promise<void> {
+        await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+        this.timer = new TomatoTimer({
+            workMinutes: this.settings.workMinutes,
+            shortBreakMinutes: this.settings.shortBreakMinutes,
+            longBreakMinutes: this.settings.longBreakMinutes,
+            cycles: this.settings.cycles,
+            autoStartNextPhase: this.settings.autoStartNextPhase,
+        });
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+        this.timer.onTick(s => this.onTick(s));
+        this.timer.onPhaseComplete((c, n) => this.onPhaseComplete(c, n));
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			},
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (
-				editor: Editor,
-				_ctx: MarkdownView | MarkdownFileInfo,
-			) => {
-				editor.replaceSelection('Sample editor command');
-			},
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+        // Request OS notification permission on load (Electron / modern browsers)
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			},
-		});
+        // Register sidebar view
+        this.registerView(VIEW_TYPE_Tomato, leaf => new TomatoTimerView(leaf, this));
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+        // Ribbon button
+        this.addRibbonIcon('timer', 'Tomato', () => this.activateView());
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(activeDocument, 'click', (_evt: MouseEvent) => {
-			new Notice('Click');
-		});
+        // Status bar — always visible, zero-distraction time indicator
+        this.statusBarEl = this.addStatusBarItem();
+        this.statusBarEl.addClass('Tomato-statusbar');
+        this.statusBarEl.style.cursor = 'pointer';
+        this.registerDomEvent(this.statusBarEl, 'click', () => this.activateView());
+        this.refreshStatusBar({ phase: 'idle', remainingSeconds: 0, isRunning: false });
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(
-			window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000),
-		);
-	}
+        // Command palette
+        this.addCommand({
+            id: 'start-pause',
+            name: 'Tomato: Start / Pause',
+            callback: () => {
+                const s = this.timer.getState();
+                if (s.phase === 'idle') this.timer.start();
+                else if (s.isRunning) this.timer.pause();
+                else this.timer.resume();
+            },
+        });
+        this.addCommand({ id: 'reset', name: 'Tomato: Reset', callback: () => this.timer.reset() });
+        this.addCommand({ id: 'open', name: 'Tomato: Open panel', callback: () => this.activateView() });
 
-	onunload() {}
+        // Watch log file changes → refresh history panel
+        this.registerEvent(this.app.vault.on('modify', file => {
+            if (normalizePath(file.path) === normalizePath(this.settings.logFile)) {
+                this.forEachView(v => v.refreshHistory());
+            }
+        }));
 
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<MyPluginSettings>,
-		);
-	}
+        this.addSettingTab(new TomatoSettingTab(this.app, this));
+    }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+    onunload(): void {
+        this.timer.destroy();
+    }
+
+    async loadSettings(): Promise<void> {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<TomatoPluginSettings>);
+    }
+
+    async saveSettings(): Promise<void> {
+        await this.saveData(this.settings);
+    }
+
+    applySettings(): void {
+        this.timer.updateSettings({
+            workMinutes: this.settings.workMinutes,
+            shortBreakMinutes: this.settings.shortBreakMinutes,
+            longBreakMinutes: this.settings.longBreakMinutes,
+            cycles: this.settings.cycles,
+            autoStartNextPhase: this.settings.autoStartNextPhase,
+        });
+    }
+
+    async activateView(): Promise<void> {
+        const { workspace } = this.app;
+        const existing = workspace.getLeavesOfType(VIEW_TYPE_Tomato);
+        if (existing.length > 0) {
+            workspace.revealLeaf(existing[0]);
+            return;
+        }
+        const leaf = workspace.getRightLeaf(false);
+        if (leaf) {
+            await leaf.setViewState({ type: VIEW_TYPE_Tomato, active: true });
+            workspace.revealLeaf(leaf);
+        }
+    }
+
+    private onTick(state: TimerState): void {
+        this.refreshStatusBar(state);
+        this.forEachView(v => v.updateTimerUI(state));
+    }
+
+    private async onPhaseComplete(completed: PhaseType, _next: PhaseType): Promise<void> {
+        // Layer 2: in-app Notice
+        const msg = completed === 'work'
+            ? '🍅 Tomato done! Time to rest.'
+            : '☀️ Break over. Back to focus!';
+        new Notice(msg, 4000);
+
+        // Layer 3: OS system notification (works when Obsidian is in the background)
+        this.sendOsNotification(
+            completed === 'work' ? '🍅 Tomato done!' : '☀️ Break over!',
+            completed === 'work' ? 'Time to take a break.' : 'Back to focus!',
+        );
+
+        // Layer 4: audio beep (no external files needed)
+        this.playBeep();
+
+        // Append entry to log and open file for editing on work completion
+        if (completed === 'work') {
+            await appendEntry(this.app, this.settings, {
+                date: todayString(),
+                time: nowTimeString(),
+                duration: this.settings.workMinutes,
+            });
+            await this.openLogForEditing();
+            this.forEachView(v => v.refreshHistory());
+        }
+    }
+
+    private async openLogForEditing(): Promise<void> {
+        const path = normalizePath(this.settings.logFile);
+        const file = this.app.vault.getFileByPath(path);
+        if (!(file instanceof TFile)) return;
+
+        const leaf = this.app.workspace.getLeaf(false);
+        await leaf.openFile(file);
+
+        // Place cursor at the end of the newly appended line
+        const editor = this.app.workspace.activeEditor?.editor;
+        if (editor) {
+            const lastLine = editor.lastLine();
+            editor.setCursor({ line: lastLine, ch: editor.getLine(lastLine).length });
+            editor.focus();
+        }
+    }
+
+    private refreshStatusBar(state: Pick<TimerState, 'phase' | 'remainingSeconds' | 'isRunning'>): void {
+        const emoji = phaseEmoji(state.phase);
+        if (state.phase === 'idle') {
+            this.statusBarEl.setText(`${emoji} --`);
+            return;
+        }
+        const m = String(Math.floor(state.remainingSeconds / 60)).padStart(2, '0');
+        this.statusBarEl.setText(`${emoji} ${m}${state.isRunning ? '' : ' ⏸'}`);
+    }
+
+    private sendOsNotification(title: string, body: string): void {
+        if (!this.settings.enableOsNotification) return;
+        if (typeof Notification === 'undefined') return;
+        if (Notification.permission !== 'granted') return;
+        new Notification(title, { body, silent: true });
+    }
+
+    private playBeep(): void {
+        if (!this.settings.enableSound) return;
+        try {
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 800;
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.4);
+        } catch {
+            // AudioContext unavailable — silently skip
+        }
+    }
+
+    private forEachView(fn: (v: TomatoTimerView) => void): void {
+        for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_Tomato)) {
+            if (leaf.view instanceof TomatoTimerView) fn(leaf.view);
+        }
+    }
 }
 
-class SampleModal extends Modal {
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
+function phaseEmoji(phase: string): string {
+    switch (phase) {
+        case 'work':       return '🍅';
+        case 'shortBreak': return '☕';
+        case 'longBreak':  return '🛌';
+        default:           return '⏱️';
+    }
 }

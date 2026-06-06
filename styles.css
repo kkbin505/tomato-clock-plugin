@@ -1,8 +1,259 @@
-/*
+/* =====================================================
+   Container
+   ===================================================== */
+.Tomato-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 16px;
+    gap: 14px;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    user-select: none;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* =====================================================
+   Header
+   ===================================================== */
+.Tomato-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
 
-If your plugin does not need CSS, delete this file.
+.Tomato-icon {
+    font-size: 2.4rem;
+    line-height: 1;
+}
 
-*/
+.Tomato-title-row {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.Tomato-count {
+    font-weight: normal;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* =====================================================
+   Progress dots
+   ===================================================== */
+.Tomato-dots {
+    display: flex;
+    gap: 8px;
+}
+
+.Tomato-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--background-modifier-border);
+    transition: background 0.3s;
+}
+
+.Tomato-dot.completed {
+    background: var(--color-red);
+}
+
+.Tomato-dot.active {
+    background: var(--color-orange);
+    box-shadow: 0 0 5px var(--color-orange);
+}
+
+/* =====================================================
+   Timer area — mirrors Python window.config(bg=...) via data-phase
+   ===================================================== */
+.Tomato-timer-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 18px 32px;
+    border-radius: 12px;
+    background: var(--background-secondary);
+    width: 100%;
+    max-width: 200px;
+    transition: background 0.5s;
+}
+
+.Tomato-container[data-phase="shortBreak"] .Tomato-timer-area {
+    background: rgba(86, 130, 3, 0.12);
+}
+
+.Tomato-container[data-phase="longBreak"] .Tomato-timer-area {
+    background: rgba(173, 8, 77, 0.12);
+}
+
+/* Mirrors Python timer_label font=("Courier", 20, "bold") */
+.Tomato-timer-display {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 2.6rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: var(--text-normal);
+    line-height: 1;
+}
+
+.Tomato-status-text {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+}
+
+/* =====================================================
+   Controls
+   ===================================================== */
+.Tomato-controls {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    max-width: 200px;
+}
+
+.Tomato-btn {
+    flex: 1;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.Tomato-btn:hover  { opacity: 0.82; }
+.Tomato-btn:active { transform: scale(0.96); }
+.Tomato-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.Tomato-btn-primary   { background: var(--interactive-accent); color: var(--text-on-accent); }
+.Tomato-btn-secondary { background: var(--background-modifier-border); color: var(--text-normal); }
+.Tomato-btn-danger    { background: var(--background-modifier-border); color: var(--text-muted); }
+.Tomato-btn-danger:hover { background: var(--color-red); color: #fff; opacity: 1; }
+
+/* =====================================================
+   Status bar
+   ===================================================== */
+.Tomato-statusbar {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+}
+
+/* =====================================================
+   History
+   ===================================================== */
+.Tomato-history {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-top: 1px solid var(--background-modifier-border);
+    padding-top: 14px;
+}
+
+.Tomato-history-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.Tomato-history-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.Tomato-today-summary,
+.Tomato-total {
+    font-weight: normal;
+    color: var(--text-muted);
+}
+
+/* Today entry list */
+.Tomato-today-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.Tomato-today-item {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.Tomato-entry-time {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.Tomato-entry-note {
+    color: var(--text-normal);
+}
+
+/* Inline-render markdown paragraphs inside the entry note */
+.Tomato-entry-note p {
+    margin: 0;
+    display: inline;
+}
+
+/* =====================================================
+   Weekly bar chart (pure CSS, no library)
+   ===================================================== */
+.Tomato-week-bar {
+    display: flex;
+    gap: 4px;
+    align-items: flex-end;
+    height: 56px;
+}
+
+.Tomato-bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    height: 100%;
+}
+
+.Tomato-bar-fill {
+    width: 100%;
+    min-height: 2px;
+    background: var(--interactive-accent);
+    opacity: 0.4;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.3s ease;
+}
+
+.Tomato-bar-fill.today {
+    opacity: 0.9;
+}
+
+.Tomato-bar-label {
+    font-size: 0.6rem;
+    color: var(--text-faint);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.Tomato-bar-count {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1;
+}

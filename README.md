@@ -1,92 +1,45 @@
-# Obsidian Sample Plugin
+# Tomato Clock
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+[中文说明](README.zh.md)
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+A minimal Pomodoro timer plugin for Obsidian.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+![demo](img/tomato.gif)
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+## Features
 
-## First time developing plugins?
+- Sidebar panel with countdown, phase indicator (progress dots), and session controls (Start / Pause, Skip, Reset)
+- Status bar — shows remaining minutes at a glance; click to open the panel
+- OS notification and audio beep when a phase ends (audio synthesized in-browser, no files needed)
+- Work sessions logged to a Markdown file (`Tomato Log.md` by default)
+- Log file opens automatically after each session — add notes and `[[wikilinks]]` on the same line
+- Sidebar history: today's sessions with notes, weekly bar chart, all-time total
 
-Quick starting guide for new plugin devs:
+## Usage
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+Click the 🍅 icon in the left ribbon to open the panel, or use the command palette (`Tomato: Start / Pause`). Write notes directly after the cursor on the log entry line — do not press Enter.
 
-## Releasing new releases
+## Settings
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+| Option | Default | Description |
+|---|---|---|
+| Work duration | 25 min | Length of each focus session |
+| Short break | 5 min | Break after each session |
+| Long break | 15 min | Break after a full cycle |
+| Cycles per set | 4 | Sessions before a long break |
+| Auto-start next phase | On | Automatically start the next phase |
+| Sound alert | On | Beep when a phase ends |
+| OS notification | On | System notification for background use |
+| Log file path | Tomato Log.md | File where completed sessions are recorded |
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+## Installation
 
-## Adding your plugin to the community plugin list
+Copy `main.js`, `manifest.json`, and `styles.css` from `obsidian-plugin/` into `.obsidian/plugins/tomato-clock/` in your vault, then enable the plugin in Obsidian → Settings → Community plugins.
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+## Privacy & Data
 
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
-```
-
-If you have multiple URLs, you can also do:
-
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
-```
-
-## API Documentation
-
-See https://docs.obsidian.md
+All data is stored **locally** on your device:
+- Timer sessions are logged to a Markdown file in your vault
+- No data is sent to external servers
+- No telemetry or analytics
+- The plugin respects your vault — it only reads and writes to the log file you specify
