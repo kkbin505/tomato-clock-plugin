@@ -92,13 +92,13 @@ export default class TomatoPlugin extends Plugin {
         const { workspace } = this.app;
         const existing = workspace.getLeavesOfType(VIEW_TYPE_Tomato);
         if (existing.length > 0) {
-            workspace.revealLeaf(existing[0]);
+            void workspace.revealLeaf(existing[0]);
             return;
         }
         const leaf = workspace.getRightLeaf(false);
         if (leaf) {
             await leaf.setViewState({ type: VIEW_TYPE_Tomato, active: true });
-            workspace.revealLeaf(leaf);
+            void workspace.revealLeaf(leaf);
         }
     }
 

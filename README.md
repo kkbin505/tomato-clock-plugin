@@ -2,7 +2,7 @@
 
 [中文说明](README.zh.md)
 
-A minimal Pomodoro timer plugin for Obsidian.
+A minimal Pomodoro timer plugin for Obsidian. I needed something to help me focus without leaving the app. Obsidian is great, but normally I'd have to exit it to use a third-party timer—which is distracting. So I created this plugin to keep you focused within Obsidian. The UI is designed to be minimal and distraction-free while providing just enough feedback when a focus session ends.
 
 ![demo](img/tomato.gif)
 
@@ -43,3 +43,7 @@ All data is stored **locally** on your device:
 - No data is sent to external servers
 - No telemetry or analytics
 - The plugin respects your vault — it only reads and writes to the log file you specify
+
+## Share Your Progress
+
+How many Tomato sessions do you complete each day? Share your achievements and help inspire others to stay focused! 🍅
