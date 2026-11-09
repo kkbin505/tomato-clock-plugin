@@ -86,6 +86,11 @@ export default class TomatoPlugin extends Plugin {
             cycles: this.settings.cycles,
             autoStartNextPhase: this.settings.autoStartNextPhase,
         });
+
+        // Re-render immediately so changes (e.g. showSeconds) don't wait for the next tick
+        const state = this.timer.getState();
+        this.refreshStatusBar(state);
+        this.forEachView(v => v.updateTimerUI(state));
     }
 
     async activateView(): Promise<void> {
@@ -123,14 +128,16 @@ export default class TomatoPlugin extends Plugin {
         // Layer 4: audio beep (no external files needed)
         this.playBeep();
 
-        // Append entry to log and open file for editing on work completion
+        // Append entry to log on work completion; open it only if the user enabled that
         if (completed === 'work') {
             await appendEntry(this.app, this.settings, {
                 date: todayString(),
                 time: nowTimeString(),
                 duration: this.settings.workMinutes,
             });
-            await this.openLogForEditing();
+            if (this.settings.openLogOnComplete) {
+                await this.openLogForEditing();
+            }
             this.forEachView(v => { void v.refreshHistory(); });
         }
     }
@@ -154,12 +161,18 @@ export default class TomatoPlugin extends Plugin {
 
     private refreshStatusBar(state: Pick<TimerState, 'phase' | 'remainingSeconds' | 'isRunning'>): void {
         const emoji = phaseEmoji(state.phase);
+        const showSeconds = this.settings.showSeconds;
+
         if (state.phase === 'idle') {
-            this.statusBarEl.setText(`${emoji} --`);
+            this.statusBarEl.setText(`${emoji} ${showSeconds ? '--:--' : '--'}`);
             return;
         }
-        const m = String(Math.floor(state.remainingSeconds / 60)).padStart(2, '0');
-        this.statusBarEl.setText(`${emoji} ${m}${state.isRunning ? '' : ' ⏸'}`);
+
+        const total = Math.max(0, Math.floor(state.remainingSeconds));
+        const mm = String(Math.floor(total / 60)).padStart(2, '0');
+        const time = showSeconds ? `${mm}:${String(total % 60).padStart(2, '0')}` : mm;
+
+        this.statusBarEl.setText(`${emoji} ${time}${state.isRunning ? '' : ' ⏸'}`);
     }
 
     private sendOsNotification(title: string, body: string): void {

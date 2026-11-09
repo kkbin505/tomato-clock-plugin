@@ -7,8 +7,10 @@ export interface TomatoPluginSettings {
     longBreakMinutes: number;
     cycles: number;
     autoStartNextPhase: boolean;
+    showSeconds: boolean;
     enableSound: boolean;
     enableOsNotification: boolean;
+    openLogOnComplete: boolean;
     logFile: string;
 }
 
@@ -18,8 +20,10 @@ export const DEFAULT_SETTINGS: TomatoPluginSettings = {
     longBreakMinutes: 15,
     cycles: 4,
     autoStartNextPhase: true,
+    showSeconds: false,
     enableSound: true,
     enableOsNotification: true,
+    openLogOnComplete: true,
     logFile: 'Tomato Log.md',
 };
 
@@ -101,6 +105,27 @@ export class TomatoSettingTab extends PluginSettingTab {
                     this.plugin.settings.autoStartNextPhase = v;
                     await this.plugin.saveSettings();
                     this.plugin.applySettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Show timer seconds')
+            .setDesc('Display the timer as MM:SS instead of only minutes.')
+            .addToggle(t => t
+                .setValue(this.plugin.settings.showSeconds)
+                .onChange(async v => {
+                    this.plugin.settings.showSeconds = v;
+                    await this.plugin.saveSettings();
+                    this.plugin.applySettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Open log when a Tomato ends')
+            .setDesc('Open the log file with the cursor on the new entry.')
+            .addToggle(t => t
+                .setValue(this.plugin.settings.openLogOnComplete)
+                .onChange(async v => {
+                    this.plugin.settings.openLogOnComplete = v;
+                    await this.plugin.saveSettings();
                 }));
 
         new Setting(containerEl)

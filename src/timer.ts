@@ -19,6 +19,10 @@ export interface TimerState {
 export type TimerTickCallback = (state: TimerState) => void;
 export type PhaseCompleteCallback = (completed: PhaseType, next: PhaseType) => void;
 
+// Poll often so the end of a phase and the second boundary are caught promptly.
+// The UI is only notified when the displayed second actually changes.
+const TICK_INTERVAL_MS = 200;
+
 export class TomatoTimer {
     private settings: TomatoTimerSettings;
     private reps = 0;
@@ -27,6 +31,7 @@ export class TomatoTimer {
     private completedTomatos = 0;
     private startTime: number = 0;       // Date.now() at last start/resume
     private accumulatedMs: number = 0;   // ms consumed before last pause
+    private lastSeconds = -1;            // last remainingSeconds sent to the UI
 
     private onTickCb: TimerTickCallback | null = null;
     private onPhaseCb: PhaseCompleteCallback | null = null;
@@ -96,7 +101,8 @@ export class TomatoTimer {
         return {
             phase: this.reps === 0 ? 'idle' : this.currentPhase(),
             reps: this.reps,
-            remainingSeconds: Math.floor(this.getRemainingMs() / 1000),
+            // ceil: a countdown shows 00:01 until it really hits zero, never skipping a second
+            remainingSeconds: Math.ceil(this.getRemainingMs() / 1000),
             isRunning: this.isRunning,
             completedTomatos: this.completedTomatos,
         };
@@ -134,7 +140,7 @@ export class TomatoTimer {
 
     private startInterval(): void {
         this.stopInterval();
-        this.intervalId = window.setInterval(() => this.tick(), 1000);
+        this.intervalId = window.setInterval(() => this.tick(), TICK_INTERVAL_MS);
     }
 
     private stopInterval(): void {
@@ -152,7 +158,8 @@ export class TomatoTimer {
             if (done === 'work') this.completedTomatos += 1;
             this.notifyTick();
             this.handleEnd(done);
-        } else {
+        } else if (this.getState().remainingSeconds !== this.lastSeconds) {
+            // Only notify when the displayed second changed
             this.notifyTick();
         }
     }
@@ -166,6 +173,8 @@ export class TomatoTimer {
     }
 
     private notifyTick(): void {
-        this.onTickCb?.(this.getState());
+        const state = this.getState();
+        this.lastSeconds = state.remainingSeconds;
+        this.onTickCb?.(state);
     }
 }

@@ -57,8 +57,11 @@ export class TomatoTimerView extends ItemView {
 
         // Timer display
         const timerArea = root.createDiv({ cls: 'Tomato-timer-area' });
-        this.timerDisplayEl = timerArea.createDiv({ cls: 'Tomato-timer-display', text: '--' });
-        this.statusTextEl = timerArea.createDiv({ cls: 'Tomato-status-text', text: 'Ready' });
+		this.timerDisplayEl = timerArea.createDiv({
+			cls: 'Tomato-timer-display',
+			text: this.plugin.settings.showSeconds ? '--:--' : '--',
+		});        
+		this.statusTextEl = timerArea.createDiv({ cls: 'Tomato-status-text', text: 'Ready' });
 
         // Controls
         const controls = root.createDiv({ cls: 'Tomato-controls' });
@@ -175,9 +178,15 @@ export class TomatoTimerView extends ItemView {
         }
     }
 
-    private fmtTime(s: number): string {
-        return String(Math.floor(s / 60)).padStart(2, '0');
-    }
+	private fmtTime(s: number): string {
+		const total = Math.max(0, Math.floor(s));
+		const m = Math.floor(total / 60);
+		const sec = total % 60;
+		const mm = String(m).padStart(2, '0');
+
+		if (!this.plugin.settings.showSeconds) return mm;
+		return `${mm}:${String(sec).padStart(2, '0')}`;
+	}
 
     private phaseLabel(state: TimerState): string {
         if (!state.isRunning && state.phase !== 'idle') return 'Paused';
